@@ -159,9 +159,9 @@ if (empty($parents)) {
         $actionmenu->set_kebab_trigger(get_string('actions'));
         
         // View children action.
-        $viewaction = new action_menu_link_secondary(
+        $viewaction = new action_menu_link_primary(
             new moodle_url('#'),
-            new pix_icon('i/users', '', 'moodle'),
+            new pix_icon('i/preview', '', 'moodle'),
             get_string('viewchildren', 'local_parentmanager'),
             [
                 'data-action' => 'view-children',
@@ -172,7 +172,7 @@ if (empty($parents)) {
         $actionmenu->add($viewaction);
         
         // Assign child action.
-        $assignaction = new action_menu_link_secondary(
+        $assignaction = new action_menu_link_primary(
             new moodle_url('#'),
             new pix_icon('i/user', '', 'moodle'),
             get_string('assignchild', 'local_parentmanager'),
@@ -185,7 +185,7 @@ if (empty($parents)) {
         $actionmenu->add($assignaction);
         
         // Remove parent action.
-        $removeaction = new action_menu_link_secondary(
+        $removeaction = new action_menu_link_primary(
             new moodle_url('#'),
             new pix_icon('i/delete', '', 'moodle'),
             get_string('removeparent', 'local_parentmanager'),

@@ -21,8 +21,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery', 'core/ajax', 'core/notification', 'core/modal_factory', 'core/modal_events', 'core/str'],
-    function($, Ajax, Notification, ModalFactory, ModalEvents, Str) {
+define(['jquery', 'core/ajax', 'core/notification', 'core/modal', 'core/modal_save_cancel', 'core/modal_events', 'core/str'],
+    function($, Ajax, Notification, Modal, ModalSaveCancel, ModalEvents, Str) {
 
     /**
      * Initialize the module.
@@ -93,19 +93,18 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal_factory', 'core/
 
                 body += '</div>';
 
-                ModalFactory.create({
-                    type: ModalFactory.types.DEFAULT,
+                Modal.create({
                     title: strings[0] + ': ' + parentName,
                     body: body,
-                    large: true
-                }).done(function(modal) {
-                    modal.show();
-
+                    show: true,
+                    removeOnClose: true,
+                    large: true,
+                }).then(function(modal) {
                     // Handle remove child within modal.
                     modal.getRoot().on('click', '[data-action="remove-child"]', function(e) {
                         e.preventDefault();
                         var relationId = $(this).data('relationid');
-                        removeChild(relationId, modal, parentId, parentName);
+                        removeChild(relationId, modal);
                     });
                 });
             }).fail(Notification.exception);
@@ -116,11 +115,8 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal_factory', 'core/
      * Remove a child from a parent.
      *
      * @param {int} relationId Relation ID
-     * @param {object} modal The modal object
-     * @param {int} parentId Parent user ID
-     * @param {string} parentName Parent name
      */
-    var removeChild = function(relationId, modal, parentId, parentName) {
+    var removeChild = function(relationId) {
         Str.get_strings([
             {key: 'confirm', component: 'core'},
             {key: 'confirmremovechild', component: 'local_parentmanager'},
@@ -134,13 +130,7 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal_factory', 'core/
                     args: {relationid: relationId}
                 }])[0].done(function(response) {
                     if (response.success) {
-                        Notification.addNotification({
-                            message: strings[4],
-                            type: 'success'
-                        });
-                        modal.hide();
-                        // Refresh the view.
-                        viewChildren(parentId, parentName);
+                        window.location.reload();
                     }
                 }).fail(Notification.exception);
             });
@@ -154,68 +144,53 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal_factory', 'core/
      * @param {string} parentName Parent name
      */
     var assignChild = function(parentId, parentName) {
-        Str.get_strings([
-            {key: 'assignchild', component: 'local_parentmanager'},
-            {key: 'nousersavailable', component: 'local_parentmanager'},
-            {key: 'assign', component: 'local_parentmanager'},
-            {key: 'cancel', component: 'core'},
-            {key: 'noselectederror', component: 'local_parentmanager'},
-            {key: 'childrenassigned', component: 'local_parentmanager'}
-        ]).done(function(strings) {
-            Ajax.call([{
-                methodname: 'local_parentmanager_get_unassigned_users',
-                args: {}
-            }])[0].done(function(response) {
-                var body = '<div class="parent-assign-children">';
+        require(['core/fragment'], function(Fragment) {
+            Str.get_strings([
+                {key: 'assignchild', component: 'local_parentmanager'},
+                {key: 'assign', component: 'local_parentmanager'},
+                {key: 'childrenassigned', component: 'local_parentmanager'}
+            ]).done(function(strings) {
+                var formPromise = Fragment.loadFragment(
+                    'local_parentmanager',
+                    'assign_form',
+                    1,
+                    {parentid: parentId}
+                );
 
-                if (response.users.length === 0) {
-                    body += '<p>' + strings[1] + '</p>';
-                } else {
-                    body += '<form id="assign-children-form">';
-                    body += '<div class="form-group">';
-                    body += '<label>Select users to assign:</label>';
-                    body += '<div class="user-selection" style="max-height: 400px; overflow-y: auto;">';
-
-                    response.users.forEach(function(user) {
-                        body += '<div class="form-check">';
-                        body += '<input class="form-check-input child-checkbox" type="checkbox" ' +
-                                'value="' + user.id + '" id="user-' + user.id + '">';
-                        body += '<label class="form-check-label" for="user-' + user.id + '">';
-                        body += user.fullname + ' (' + user.email + ')';
-                        body += '</label>';
-                        body += '</div>';
-                    });
-
-                    body += '</div></div></form>';
-                }
-
-                body += '</div>';
-
-                ModalFactory.create({
-                    type: ModalFactory.types.SAVE_CANCEL,
+                // Create modal with the form as body.
+                ModalSaveCancel.create({
                     title: strings[0] + ': ' + parentName,
-                    body: body,
-                    large: true
-                }).done(function(modal) {
-                    modal.setSaveButtonText(strings[2]);
-                    modal.show();
+                    body: formPromise,
+                    show: true,
+                    removeOnClose: true,
+                    large: true,
+                }).then(function(modal) {
+                    modal.setSaveButtonText(strings[1]);
 
+                    // Handle form submission.
                     modal.getRoot().on(ModalEvents.save, function(e) {
                         e.preventDefault();
 
-                        var selectedIds = [];
-                        modal.getRoot().find('.child-checkbox:checked').each(function() {
-                            selectedIds.push(parseInt($(this).val()));
-                        });
+                        // Get form data.
+                        var form = modal.getRoot().find('form');
+                        var selectedIds = form.find('[name="userids[]"]').val();
 
-                        if (selectedIds.length === 0) {
-                            Notification.addNotification({
-                                message: strings[4],
-                                type: 'warning'
+                        if (!selectedIds || selectedIds.length === 0) {
+                            Str.get_string('noselectederror', 'local_parentmanager').done(function(errorMsg) {
+                                Notification.addNotification({
+                                    message: errorMsg,
+                                    type: 'warning'
+                                });
                             });
                             return;
                         }
 
+                        // Convert to integers.
+                        selectedIds = selectedIds.map(function(id) {
+                            return parseInt(id);
+                        });
+
+                        // Submit via AJAX.
                         Ajax.call([{
                             methodname: 'local_parentmanager_assign_children',
                             args: {
@@ -224,18 +199,14 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal_factory', 'core/
                             }
                         }])[0].done(function(response) {
                             if (response.success) {
-                                Notification.addNotification({
-                                    message: strings[5],
-                                    type: 'success'
-                                });
                                 modal.hide();
-                                // Reload the page to update counts.
+                                // Reload the page.
                                 window.location.reload();
                             }
                         }).fail(Notification.exception);
                     });
                 });
-            }).fail(Notification.exception);
+            });
         });
     };
 
@@ -260,10 +231,6 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal_factory', 'core/
                     args: {parentid: parentId}
                 }])[0].done(function(response) {
                     if (response.success) {
-                        Notification.addNotification({
-                            message: strings[4],
-                            type: 'success'
-                        });
                         // Reload the page.
                         window.location.reload();
                     }

@@ -43,6 +43,8 @@ $string['noparents'] = 'No parent users found. Users must have the "is_parent" c
 $string['nochildren'] = 'No children assigned to this parent.';
 $string['nousersavailable'] = 'No users available to assign. All users are either already assigned to a parent or marked as parents themselves.';
 $string['noselectederror'] = 'Please select at least one user to assign.';
+$string['searchusers'] = 'Search users';
+$string['selectuserstoassign'] = 'Select users to assign as children';
 
 // Confirmations.
 $string['confirmremovechild'] = 'Are you sure you want to remove this child from the parent?';

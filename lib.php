@@ -172,3 +172,25 @@ function local_parentmanager_remove_parent($parentid) {
     // Update profile field.
     return local_parentmanager_update_parent_status($parentid, 'No');
 }
+
+/**
+ * Serves the form fragments for modal display.
+ *
+ * @param array $args Arguments passed to the fragment
+ * @return string HTML output
+ */
+function local_parentmanager_output_fragment_assign_form($args) {
+    global $CFG;
+    
+    require_once($CFG->dirroot . '/local/parentmanager/classes/assign_form.php');
+    
+    $parentid = isset($args['parentid']) ? (int)$args['parentid'] : 0;
+    
+    $customdata = [
+        'parentid' => $parentid,
+    ];
+    
+    $form = new local_parentmanager_assign_form(null, $customdata);
+    
+    return $form->render();
+}
