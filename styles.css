@@ -1,0 +1,98 @@
+/* This file is part of Moodle - http://moodle.org/
+ *
+ * Moodle is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Moodle is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/**
+ * Parent Manager plugin styles.
+ *
+ * @package    local_parentmanager
+ * @copyright  2026
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+.parent-manager-container {
+    margin: 20px 0;
+}
+
+.parent-manager-container .table {
+    margin-top: 20px;
+}
+
+.parent-manager-container .dropdown-toggle::after {
+    display: none;
+}
+
+.parent-children-list table,
+.parent-assign-children table {
+    margin-top: 15px;
+}
+
+.user-selection {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    background-color: #f8f9fa;
+}
+
+.user-selection .form-check {
+    margin-bottom: 10px;
+    padding: 8px;
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s;
+}
+
+.user-selection .form-check:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.user-selection .form-check-input {
+    margin-top: 0.3em;
+}
+
+.user-selection .form-check-label {
+    cursor: pointer;
+    width: 100%;
+}
+
+/* Modal improvements */
+.modal-body .table {
+    margin-bottom: 0;
+}
+
+.modal-body .btn-danger {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Dropdown menu improvements */
+.dropdown-menu {
+    min-width: 200px;
+}
+
+.dropdown-item i {
+    margin-right: 5px;
+}
+
+.dropdown-item.text-danger:hover {
+    background-color: #dc3545;
+    color: #fff !important;
+}
+
+.dropdown-item.text-danger:hover i {
+    color: #fff !important;
+}
