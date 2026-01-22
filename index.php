@@ -26,6 +26,7 @@ require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir . '/tablelib.php');
 require_once(__DIR__ . '/lib.php');
+require_once(__DIR__ . '/classes/mark_parent_form.php');
 
 admin_externalpage_setup('local_parentmanager');
 
@@ -43,8 +44,43 @@ $PAGE->set_heading(get_string('manageparents', 'local_parentmanager'));
 require_login();
 require_capability('local/parentmanager:manage', context_system::instance());
 
+// Handle form submission for marking users as parents.
+$markform = new local_parentmanager_mark_parent_form();
+
+if ($markform->is_cancelled()) {
+    redirect(new moodle_url('/local/parentmanager/index.php'));
+} else if ($data = $markform->get_data()) {
+    if (!empty($data->userids)) {
+        $success = local_parentmanager_mark_as_parents($data->userids);
+        if ($success) {
+            redirect(new moodle_url('/local/parentmanager/index.php'),
+                get_string('usersmarkedasparents', 'local_parentmanager'),
+                null,
+                \core\output\notification::NOTIFY_SUCCESS);
+        } else {
+            redirect(new moodle_url('/local/parentmanager/index.php'),
+                get_string('error'),
+                null,
+                \core\output\notification::NOTIFY_ERROR);
+        }
+    }
+}
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('manageparents', 'local_parentmanager'));
+
+echo html_writer::empty_tag('hr');
+
+// Section 1: Add Parent.
+echo $OUTPUT->heading(get_string('addparent', 'local_parentmanager'), 3);
+echo html_writer::start_div('mb-4');
+$markform->display();
+echo html_writer::end_div();
+
+echo html_writer::empty_tag('hr');
+
+// Section 2: Parent List.
+echo $OUTPUT->heading(get_string('parentlist', 'local_parentmanager'), 3);
 
 // Build SQL query for parents with search.
 $params = ['shortname' => 'is_parent', 'isparent' => 'Yes'];
@@ -209,7 +245,7 @@ if (empty($parents)) {
     echo $OUTPUT->paging_bar($totalparents, $page, $perpage, $baseurl);
 }
 
-// Add JS module.
+// Add JS module for actions (view children, assign child, remove parent).
 $PAGE->requires->js_call_amd('local_parentmanager/actions', 'init');
 
 echo $OUTPUT->footer();

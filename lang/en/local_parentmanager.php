@@ -28,6 +28,8 @@ $string['pluginname'] = 'Parent Manager';
 $string['manageparents'] = 'Manage Parents';
 $string['parentmanager:manage'] = 'Manage parent-child relationships';
 $string['assignedchildrenforparent'] = 'List of assigned children for parent';
+$string['addparent'] = 'Add Parent';
+$string['parentlist'] = 'Parent List';
 
 // Table headers.
 $string['assignedchildren'] = 'Number of Assigned Children';
@@ -37,9 +39,11 @@ $string['viewchildren'] = 'View Assigned Children';
 $string['assign'] = 'Assign';
 $string['assignchild'] = 'Assign Child';
 $string['removeparent'] = 'Remove Parent';
+$string['markasparent'] = 'Mark as Parent';
+$string['selectuserstomarkasparent'] = 'Select users to mark as parents';
 
 // Messages.
-$string['noparents'] = 'No parent users found. Users must have the "is_parent" custom profile field set to "Yes".';
+$string['noparents'] = 'No parent users found. Users must have the "Is Parent" custom profile field set to "Yes".';
 $string['nochildren'] = 'No children assigned to this parent.';
 $string['nousersavailable'] = 'No users available to assign. All users are either already assigned to a parent or marked as parents themselves.';
 $string['noselectederror'] = 'Please select at least one user to assign.';
@@ -54,6 +58,7 @@ $string['confirmremoveparent'] = 'Are you sure you want to remove parent status 
 $string['childremoved'] = 'Child successfully removed from parent.';
 $string['childrenassigned'] = 'Children successfully assigned to parent.';
 $string['parentremoved'] = 'Parent status removed successfully.';
+$string['usersmarkedasparents'] = 'Users successfully marked as parents.';
 
 // Privacy.
 $string['privacy:metadata:local_parentmanager_rel'] = 'Information about parent-child relationships';

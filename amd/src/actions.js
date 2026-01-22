@@ -173,7 +173,7 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal', 'core/modal_sa
 
                         // Get form data.
                         var form = modal.getRoot().find('form');
-                        var selectedIds = form.find('[name="userids[]"]').val();
+                        var selectedIds = form.find('[name="childuserids[]"]').val();
 
                         if (!selectedIds || selectedIds.length === 0) {
                             Str.get_string('noselectederror', 'local_parentmanager').done(function(errorMsg) {

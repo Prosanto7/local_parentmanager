@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Form for assigning children to a parent.
+ * Form for marking users as parents.
  *
  * @package    local_parentmanager
  * @copyright  2026
@@ -27,9 +27,9 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/formslib.php');
 
 /**
- * Assign children form class.
+ * Mark users as parents form class.
  */
-class local_parentmanager_assign_form extends moodleform {
+class local_parentmanager_mark_parent_form extends moodleform {
 
     /**
      * Form definition.
@@ -38,50 +38,40 @@ class local_parentmanager_assign_form extends moodleform {
         global $DB;
         
         $mform = $this->_form;
-        $parentid = $this->_customdata['parentid'];
 
-        $mform->addElement('hidden', 'parentid');
-        $mform->setType('parentid', PARAM_INT);
-        $mform->setDefault('parentid', $parentid);
-
-        // Get all available users (not parents, not already assigned to any parent)
+        // Get all non-parent users.
         $sql = "SELECT u.id, u.firstname, u.lastname, u.email
                 FROM {user} u
+                LEFT JOIN {user_info_data} uid ON u.id = uid.userid
+                LEFT JOIN {user_info_field} uif ON uid.fieldid = uif.id AND uif.shortname = :shortname
                 WHERE u.deleted = 0
                 AND u.id NOT IN (1, 2)
-                AND u.id != :parentid
-                AND u.id NOT IN (
-                    SELECT childid FROM {local_parentmanager_rel}
-                )
-                AND u.id NOT IN (
-                    SELECT uid.userid
-                    FROM {user_info_data} uid
-                    JOIN {user_info_field} uif ON uid.fieldid = uif.id
-                    WHERE uif.shortname = :shortname AND uid.data = :isparent
-                )
+                AND (uid.data IS NULL OR uid.data != :isparent OR uif.id IS NULL)
                 ORDER BY u.lastname, u.firstname";
         
         $params = [
             'shortname' => 'is_parent',
-            'isparent' => 'Yes',
-            'parentid' => $parentid
+            'isparent' => 'Yes'
         ];
         
         $users = $DB->get_records_sql($sql, $params);
         
-        // Build options array for autocomplete
+        // Build options array for autocomplete.
         $options = [];
         foreach ($users as $user) {
             $options[$user->id] = fullname($user) . ' (' . $user->email . ')';
         }
         
-        // Simple autocomplete with pre-loaded options (no AJAX)
+        // Autocomplete with pre-loaded options.
         $attributes = [
             'multiple' => true,
         ];
         
-        $mform->addElement('autocomplete', 'childuserids', get_string('selectuserstoassign', 'local_parentmanager'), $options, $attributes);
-        $mform->addRule('childuserids', get_string('required'), 'required', null, 'client');
+        $mform->addElement('autocomplete', 'userids', get_string('selectuserstomarkasparent', 'local_parentmanager'), $options, $attributes);
+        $mform->addRule('userids', get_string('required'), 'required', null, 'client');
+        
+        // Add buttons.
+        $this->add_action_buttons(false, get_string('markasparent', 'local_parentmanager'));
     }
 
     /**
@@ -94,8 +84,8 @@ class local_parentmanager_assign_form extends moodleform {
     public function validation($data, $files) {
         $errors = parent::validation($data, $files);
 
-        if (empty($data['childuserids']) || !is_array($data['childuserids'])) {
-            $errors['childuserids'] = get_string('noselectederror', 'local_parentmanager');
+        if (empty($data['userids']) || !is_array($data['userids'])) {
+            $errors['userids'] = get_string('noselectederror', 'local_parentmanager');
         }
 
         return $errors;

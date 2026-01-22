@@ -25,9 +25,9 @@
 defined('MOODLE_INTERNAL') || die;
 
 if ($hassiteconfig) {
-    $ADMIN->add('localplugins', new admin_externalpage(
+    $ADMIN->add('accounts', new admin_externalpage(
         'local_parentmanager',
-        get_string('pluginname', 'local_parentmanager'),
+        get_string('manageparents', 'local_parentmanager'),
         new moodle_url('/local/parentmanager/index.php'),
         'local/parentmanager:manage'
     ));

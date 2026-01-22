@@ -194,3 +194,20 @@ function local_parentmanager_output_fragment_assign_form($args) {
     
     return $form->render();
 }
+
+/**
+ * Mark users as parents by updating their profile field.
+ *
+ * @param array $userids Array of user IDs to mark as parents
+ * @return bool Success status
+ */
+function local_parentmanager_mark_as_parents($userids) {
+    $success = true;
+    foreach ($userids as $userid) {
+        $result = local_parentmanager_update_parent_status($userid, 'Yes');
+        if (!$result) {
+            $success = false;
+        }
+    }
+    return $success;
+}
