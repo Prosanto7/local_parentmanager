@@ -42,11 +42,23 @@ class local_parentmanager_mark_parent_form extends moodleform {
         // Get all non-parent users.
         $sql = "SELECT u.id, u.firstname, u.lastname, u.email
                 FROM {user} u
-                LEFT JOIN {user_info_data} uid ON u.id = uid.userid
-                LEFT JOIN {user_info_field} uif ON uid.fieldid = uif.id AND uif.shortname = :shortname
                 WHERE u.deleted = 0
-                AND u.id NOT IN (1, 2)
-                AND (uid.data IS NULL OR uid.data != :isparent OR uif.id IS NULL)
+                AND u.id > 2
+                -- Exclude parent users
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM {user_info_data} uid
+                    JOIN {user_info_field} uif ON uif.id = uid.fieldid
+                    WHERE uid.userid = u.id
+                        AND uif.shortname = :shortname
+                        AND uid.data = :isparent
+                )
+                -- Exclude users assigned as children
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM {local_parentmanager_rel} rel
+                    WHERE rel.childid = u.id
+                )
                 ORDER BY u.lastname, u.firstname";
         
         $params = [

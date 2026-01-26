@@ -21,8 +21,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery', 'core/ajax', 'core/notification', 'core/modal', 'core/modal_save_cancel', 'core/modal_events', 'core/str'],
-    function($, Ajax, Notification, Modal, ModalSaveCancel, ModalEvents, Str) {
+define(['jquery', 'core/ajax', 'core/notification', 'core/modal',
+    'core/modal_save_cancel', 'core/modal_events', 'core/str', 'core/fragment'],
+    function($, Ajax, Notification, Modal, ModalSaveCancel, ModalEvents, Str, Fragment) {
 
     /**
      * Initialize the module.
@@ -144,67 +145,66 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal', 'core/modal_sa
      * @param {string} parentName Parent name
      */
     var assignChild = function(parentId, parentName) {
-        require(['core/fragment'], function(Fragment) {
-            Str.get_strings([
-                {key: 'assignchild', component: 'local_parentmanager'},
-                {key: 'assign', component: 'local_parentmanager'},
-                {key: 'childrenassigned', component: 'local_parentmanager'}
-            ]).done(function(strings) {
-                var formPromise = Fragment.loadFragment(
-                    'local_parentmanager',
-                    'assign_form',
-                    1,
-                    {parentid: parentId}
-                );
+        Str.get_strings([
+            {key: 'assignchild', component: 'local_parentmanager'},
+            {key: 'assign', component: 'local_parentmanager'},
+            {key: 'childrenassigned', component: 'local_parentmanager'}
+        ]).done(function(strings) {
+            var formPromise = Fragment.loadFragment(
+                'local_parentmanager',
+                'assign_form',
+                1,
+                {parentid: parentId}
+            );
 
-                // Create modal with the form as body.
-                ModalSaveCancel.create({
-                    title: strings[0] + ': ' + parentName,
-                    body: formPromise,
-                    show: true,
-                    removeOnClose: true,
-                    large: true,
-                }).then(function(modal) {
-                    modal.setSaveButtonText(strings[1]);
+            // Create modal with the form as body.
+            ModalSaveCancel.create({
+                title: strings[0] + ': ' + parentName,
+                body: formPromise,
+                show: true,
+                removeOnClose: true,
+                large: true,
+            }).then(function(modal) {
+                modal.setSaveButtonText(strings[1]);
 
-                    // Handle form submission.
-                    modal.getRoot().on(ModalEvents.save, function(e) {
-                        e.preventDefault();
+                // Handle form submission.
+                modal.getRoot().on(ModalEvents.save, function(e) {
+                    e.preventDefault();
 
-                        // Get form data.
-                        var form = modal.getRoot().find('form');
-                        var selectedIds = form.find('[name="childuserids[]"]').val();
+                    // Get form data.
+                    var form = modal.getRoot().find('form');
+                    var selectedIds = form.find('[name="childuserids[]"]').val();
 
-                        if (!selectedIds || selectedIds.length === 0) {
-                            Str.get_string('noselectederror', 'local_parentmanager').done(function(errorMsg) {
-                                Notification.addNotification({
-                                    message: errorMsg,
-                                    type: 'warning'
-                                });
+                    if (!selectedIds || selectedIds.length === 0) {
+                        Str.get_string('noselectederror', 'local_parentmanager').done(function(errorMsg) {
+                            Notification.addNotification({
+                                message: errorMsg,
+                                type: 'warning'
                             });
-                            return;
-                        }
-
-                        // Convert to integers.
-                        selectedIds = selectedIds.map(function(id) {
-                            return parseInt(id);
                         });
+                        return;
+                    }
 
-                        // Submit via AJAX.
-                        Ajax.call([{
-                            methodname: 'local_parentmanager_assign_children',
-                            args: {
-                                parentid: parentId,
-                                childids: selectedIds
-                            }
-                        }])[0].done(function(response) {
-                            if (response.success) {
-                                modal.hide();
-                                // Reload the page.
-                                window.location.reload();
-                            }
-                        }).fail(Notification.exception);
+                    // Convert to integers.
+                    selectedIds = selectedIds.map(function(id) {
+                        return parseInt(id);
                     });
+
+                    // Submit via AJAX.
+                    Ajax.call([{
+                        methodname: 'local_parentmanager_assign_children',
+                        args: {
+                            parentid: parentId,
+                            childids: selectedIds
+                        }
+                    }])[0].done(function(response) {
+                        if (response.success) {
+                            modal.hide();
+
+                            // Reload the page.
+                            window.location.reload();
+                        }
+                    }).fail(Notification.exception);
                 });
             });
         });
