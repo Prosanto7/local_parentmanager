@@ -13,6 +13,7 @@ A local Moodle plugin for managing parent-child relationships, allowing administ
 - View all children assigned to a parent
 - Remove children from parents
 - Remove parent status from users
+- **Automatic role assignment in child's user context**
 - Full AJAX-based interactions using Moodle's modal factory
 - Privacy API compliant
 - Moodle coding standards compliant
@@ -21,6 +22,7 @@ A local Moodle plugin for managing parent-child relationships, allowing administ
 
 - Moodle 3.9 or higher
 - A custom user profile field named `is_parent` with dropdown values "Yes" and "No"
+- A custom role configured to be assigned at the user context level (for parent role assignment)
 
 ## Installation
 
@@ -55,18 +57,67 @@ A local Moodle plugin for managing parent-child relationships, allowing administ
 2. A modal will open showing all available users (not assigned to any parent)
 3. Select one or more users using checkboxes
 4. Click "Save" to assign them to the parent
+5. **The configured parent role will be automatically assigned in each child's user context**
 
 ### Viewing Children
 
 1. Click "View Assigned Children" from the parent's action menu
 2. A modal will display all children with their details
 3. Use the "Remove" button to unassign a child from the parent
+4. **The parent role will be automatically unassigned from the child's user context**
 
 ### Removing Parent Status
 
 1. Click "Remove Parent" from the parent's action menu
 2. Confirm the action in the confirmation dialog
 3. The user's parent status will be set to "No" and all child assignments will be removed
+4. **All parent role assignments will be automatically cleaned up**
+
+## Automatic Role Assignment
+
+When a child is assigned to a parent, this plugin can automatically assign a parent role in the child's user context, allowing the parent to access their child's information based on the role's capabilities.
+
+### Setup for Automatic Role Assignment
+
+1. **Create a Custom Role**
+   - Go to Site administration → Users → Permissions → Define roles
+   - Click "Add a new role"
+   - Set the role name (e.g., "Parent")
+   - Under "Context types where this role may be assigned", **check "User"**
+   - Configure appropriate capabilities:
+     - `moodle/user:viewdetails` - View user profiles
+     - `moodle/user:viewalldetails` - View all user profile details
+     - Add other capabilities as needed for your use case
+   - Save the role
+
+2. **Configure the Plugin**
+   - Go to Site administration → Plugins → Local plugins → Parent Manager
+   - Under "Parent role", select the role you created (only roles assignable at user context are shown)
+   - Ensure "Enable automatic role assignment" is checked
+   - Save changes
+
+3. **How It Works**
+   - When you assign a child to a parent, the plugin automatically calls `role_assign($roleid, $parentid, $childcontext->id, 'local_parentmanager')`
+   - The role is assigned in the child's user context (accessed via URL: `/admin/roles/assign.php?contextid={childcontextid}`)
+   - When you remove the relationship, the plugin calls `role_unassign()` with the component identifier
+   - This ensures only roles assigned by this plugin are removed
+
+4. **Database Storage**
+   - Role assignments are stored in Moodle's standard `role_assignments` table:
+     - `roleid`: The parent role ID
+     - `userid`: The parent user ID
+     - `contextid`: The child user's context ID
+     - `component`: 'local_parentmanager' (identifies this plugin as the source)
+   - You can view these assignments at: `/admin/roles/assign.php?contextid={childcontextid}`
+
+### Example Use Case
+
+1. Create a "Parent" role with permission to view user details at the user context
+2. Configure the plugin to use this role
+3. Assign student John (userid=13) to parent Mary (userid=25)
+4. Mary automatically receives the "Parent" role in John's user context (contextid=100)
+5. Mary can now view John's profile and information based on the role's capabilities
+6. The role assignment can be verified at: `/admin/roles/assign.php?contextid=100&roleid=11`
 
 ## Capabilities
 
@@ -144,10 +195,20 @@ local/parentmanager/
 
 1. The plugin reads the `is_parent` custom profile field to identify parent users
 2. Parent-child relationships are stored in the `local_parentmanager_rel` table
-3. The main page displays all parent users with their assigned child counts
-4. AJAX calls handle all interactions (viewing, assigning, removing)
-5. Bootstrap modals provide the user interface for interactions
-6. All actions require the `local/parentmanager:manage` capability
+3. **When a child is assigned, the parent role is automatically assigned using Moodle's `role_assign()` function**
+4. **Role assignments are tracked with component='local_parentmanager' in the `role_assignments` table**
+5. The main page displays all parent users with their assigned child counts
+6. AJAX calls handle all interactions (viewing, assigning, removing)
+7. Bootstrap modals provide the user interface for interactions
+8. All actions require the `local/parentmanager:manage` capability
+9. **When relationships are removed, only roles assigned by this plugin (component='local_parentmanager') are unassigned**
+
+### Key Functions
+
+- `local_parentmanager_assign_children($parentid, $childids)` - Assigns children and automatically assigns the parent role
+- `local_parentmanager_remove_child($relationid)` - Removes a child and unassigns the parent role
+- `local_parentmanager_assign_parent_role($parentid, $childid)` - Assigns the configured role in the child's user context
+- `local_parentmanager_unassign_parent_role($parentid, $childid)` - Unassigns the role from the child's user context
 
 ## Future Enhancements
 

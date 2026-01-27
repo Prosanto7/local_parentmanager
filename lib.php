@@ -105,6 +105,9 @@ function local_parentmanager_assign_children($parentid, $childids) {
 
             try {
                 $DB->insert_record('local_parentmanager_rel', $record);
+                
+                // Assign parent role in child's user context if auto-assign is enabled.
+                local_parentmanager_assign_parent_role($parentid, $childid);
             } catch (Exception $e) {
                 $success = false;
             }
@@ -122,6 +125,14 @@ function local_parentmanager_assign_children($parentid, $childids) {
  */
 function local_parentmanager_remove_child($relationid) {
     global $DB;
+    
+    // Get the relationship details before deleting.
+    $relation = $DB->get_record('local_parentmanager_rel', ['id' => $relationid]);
+    if ($relation) {
+        // Unassign parent role from child's user context.
+        local_parentmanager_unassign_parent_role($relation->parentid, $relation->childid);
+    }
+    
     return $DB->delete_records('local_parentmanager_rel', ['id' => $relationid]);
 }
 
@@ -165,6 +176,14 @@ function local_parentmanager_update_parent_status($userid, $value) {
  */
 function local_parentmanager_remove_parent($parentid) {
     global $DB;
+
+    // Get all children for this parent before removing relationships.
+    $children = $DB->get_records('local_parentmanager_rel', ['parentid' => $parentid]);
+    
+    // Unassign parent role from all children's user contexts.
+    foreach ($children as $child) {
+        local_parentmanager_unassign_parent_role($parentid, $child->childid);
+    }
 
     // Remove all relationships.
     $DB->delete_records('local_parentmanager_rel', ['parentid' => $parentid]);
@@ -210,4 +229,67 @@ function local_parentmanager_mark_as_parents($userids) {
         }
     }
     return $success;
+}
+
+/**
+ * Assign parent role to a user in child's user context.
+ *
+ * @param int $parentid Parent user ID
+ * @param int $childid Child user ID
+ * @return bool Success status
+ */
+function local_parentmanager_assign_parent_role($parentid, $childid) {
+    // Check if auto role assignment is enabled.
+    $autoroleassign = get_config('local_parentmanager', 'autoroleassign');
+    if (!$autoroleassign) {
+        return true; // Feature disabled, return success.
+    }
+
+    // Get the configured parent role.
+    $roleid = get_config('local_parentmanager', 'parentrole');
+    if (empty($roleid)) {
+        return true; // No role configured, return success.
+    }
+
+    // Get child's user context.
+    $context = context_user::instance($childid);
+
+    try {
+        // Check if role assignment already exists.
+        if (!user_has_role_assignment($parentid, $roleid, $context->id)) {
+            // Assign the role.
+            role_assign($roleid, $parentid, $context->id, 'local_parentmanager');
+        }
+        return true;
+    } catch (Exception $e) {
+        debugging('Failed to assign parent role: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        return false;
+    }
+}
+
+/**
+ * Unassign parent role from child's user context.
+ *
+ * @param int $parentid Parent user ID
+ * @param int $childid Child user ID
+ * @return bool Success status
+ */
+function local_parentmanager_unassign_parent_role($parentid, $childid) {
+    // Get the configured parent role.
+    $roleid = get_config('local_parentmanager', 'parentrole');
+    if (empty($roleid)) {
+        return true; // No role configured.
+    }
+
+    // Get child's user context.
+    $context = context_user::instance($childid);
+
+    try {
+        // Unassign the role (only those assigned by this plugin).
+        role_unassign($roleid, $parentid, $context->id, 'local_parentmanager');
+        return true;
+    } catch (Exception $e) {
+        debugging('Failed to unassign parent role: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        return false;
+    }
 }
