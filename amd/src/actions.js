@@ -116,8 +116,9 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal',
      * Remove a child from a parent.
      *
      * @param {int} relationId Relation ID
+     * @param {object} parentModal Parent modal object to refresh
      */
-    var removeChild = function(relationId) {
+    var removeChild = function(relationId, parentModal) {
         Str.get_strings([
             {key: 'confirm', component: 'core'},
             {key: 'confirmremovechild', component: 'local_parentmanager'},
@@ -131,6 +132,9 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal',
                     args: {relationid: relationId}
                 }])[0].done(function(response) {
                     if (response.success) {
+                        if (parentModal) {
+                            parentModal.destroy();
+                        }
                         window.location.reload();
                     }
                 }).fail(Notification.exception);
@@ -199,8 +203,7 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal',
                         }
                     }])[0].done(function(response) {
                         if (response.success) {
-                            modal.hide();
-
+                            modal.destroy();
                             // Reload the page.
                             window.location.reload();
                         }
@@ -231,7 +234,6 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/modal',
                     args: {parentid: parentId}
                 }])[0].done(function(response) {
                     if (response.success) {
-                        // Reload the page.
                         window.location.reload();
                     }
                 }).fail(Notification.exception);
