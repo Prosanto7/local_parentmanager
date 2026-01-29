@@ -182,6 +182,9 @@ function local_parentmanager_remove_parent($parentid) {
     // Remove all relationships.
     $DB->delete_records('local_parentmanager_rel', ['parentid' => $parentid]);
 
+    // Unassign system role from the parent.
+    local_parentmanager_unassign_system_role($parentid);
+
     // Remove from parent table.
     return local_parentmanager_update_parent_status($parentid, false);
 }
@@ -220,6 +223,9 @@ function local_parentmanager_mark_as_parents($userids) {
         $result = local_parentmanager_update_parent_status($userid, true);
         if (!$result) {
             $success = false;
+        } else {
+            // Assign system role to the parent.
+            local_parentmanager_assign_system_role($userid);
         }
     }
     return $success;
@@ -252,7 +258,7 @@ function local_parentmanager_assign_parent_role($parentid, $childid) {
         // Check if role assignment already exists.
         if (!user_has_role_assignment($parentid, $roleid, $context->id)) {
             // Assign the role.
-            role_assign($roleid, $parentid, $context->id, 'local_parentmanager');
+            role_assign($roleid, $parentid, $context->id);
         }
         return true;
     } catch (Exception $e) {
@@ -280,7 +286,7 @@ function local_parentmanager_unassign_parent_role($parentid, $childid) {
 
     try {
         // Unassign the role (only those assigned by this plugin).
-        role_unassign($roleid, $parentid, $context->id, 'local_parentmanager');
+        role_unassign($roleid, $parentid, $context->id);
         return true;
     } catch (Exception $e) {
         debugging('Failed to unassign parent role: ' . $e->getMessage(), DEBUG_DEVELOPER);
@@ -288,6 +294,61 @@ function local_parentmanager_unassign_parent_role($parentid, $childid) {
     }
 }
 
+
+/**
+ * Assign system role to a parent user.
+ *
+ * @param int $parentid Parent user ID
+ * @return bool Success status
+ */
+function local_parentmanager_assign_system_role($parentid) {
+    // Get the configured parent system role.
+    $roleid = get_config('local_parentmanager', 'parentsystemrole');
+    if (empty($roleid)) {
+        return true; // No role configured, return success.
+    }
+
+    // Get system context.
+    $context = context_system::instance();
+
+    try {
+        // Check if role assignment already exists.
+        if (!user_has_role_assignment($parentid, $roleid, $context->id)) {
+            // Assign the role without component to allow manual unassignment.
+            role_assign($roleid, $parentid, $context->id);
+        }
+        return true;
+    } catch (Exception $e) {
+        debugging('Failed to assign parent system role: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        return false;
+    }
+}
+
+/**
+ * Unassign system role from a parent user.
+ *
+ * @param int $parentid Parent user ID
+ * @return bool Success status
+ */
+function local_parentmanager_unassign_system_role($parentid) {
+    // Get the configured parent system role.
+    $roleid = get_config('local_parentmanager', 'parentsystemrole');
+    if (empty($roleid)) {
+        return true; // No role configured.
+    }
+
+    // Get system context.
+    $context = context_system::instance();
+
+    try {
+        // Unassign the role (manual assignments without component).
+        role_unassign($roleid, $parentid, $context->id);
+        return true;
+    } catch (Exception $e) {
+        debugging('Failed to unassign parent system role: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        return false;
+    }
+}
 
 /**
  * Check if a user is marked as a parent.

@@ -61,8 +61,10 @@ $string['parentremoved'] = 'Parent status removed successfully.';
 $string['usersmarkedasparents'] = 'Users successfully marked as parents.';
 
 // Settings.
-$string['parentrole'] = 'Parent role';
+$string['parentrole'] = 'Parent role (User Context)';
 $string['parentrole_desc'] = 'Select the role to automatically assign to parents in their children\'s user context. Only roles that can be assigned at the user context level are shown.';
+$string['parentsystemrole'] = 'Parent role (System Context)';
+$string['parentsystemrole_desc'] = 'Select the role to assign to users when they are marked as parents at the system context level. Only roles that can be assigned at the system context level are shown.';
 $string['autoroleassign'] = 'Enable automatic role assignment';
 $string['autoroleassign_desc'] = 'When enabled, the selected parent role will be automatically assigned to parents in their children\'s user contexts.';
 

@@ -33,6 +33,7 @@ if ($hassiteconfig) {
         // Get all roles that can be assigned at user context.
         $roles = role_fix_names(get_all_roles(), context_system::instance(), ROLENAME_ORIGINAL);
         $roleoptions = [0 => get_string('none')];
+        $systemroleoptions = [0 => get_string('none')];
         
         foreach ($roles as $role) {
             // Check if this role can be assigned at user context.
@@ -40,15 +41,28 @@ if ($hassiteconfig) {
             if (in_array(CONTEXT_USER, $rolecontexts)) {
                 $roleoptions[$role->id] = $role->localname;
             }
+            // Check if this role can be assigned at system context.
+            if (in_array(CONTEXT_SYSTEM, $rolecontexts)) {
+                $systemroleoptions[$role->id] = $role->localname;
+            }
         }
 
-        // Setting for parent role.
+        // Setting for parent role at user context.
         $settings->add(new admin_setting_configselect(
             'local_parentmanager/parentrole',
             get_string('parentrole', 'local_parentmanager'),
             get_string('parentrole_desc', 'local_parentmanager'),
             0,
             $roleoptions
+        ));
+
+        // Setting for parent role at system context.
+        $settings->add(new admin_setting_configselect(
+            'local_parentmanager/parentsystemrole',
+            get_string('parentsystemrole', 'local_parentmanager'),
+            get_string('parentsystemrole_desc', 'local_parentmanager'),
+            0,
+            $systemroleoptions
         ));
 
         // Enable auto role assignment.

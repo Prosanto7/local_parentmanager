@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_parentmanager';
-$plugin->version = 2026012903;
+$plugin->version = 2026012905;
 $plugin->requires = 2020110900;
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = 'v1.3';
+$plugin->release = 'v1.5';
