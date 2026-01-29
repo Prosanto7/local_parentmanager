@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Get all parent users based on custom profile field.
+ * Get all parent users based on parent table.
  *
  * @return array Array of parent users
  */
@@ -35,14 +35,11 @@ function local_parentmanager_get_parents() {
     $sql = "SELECT u.id, u.firstname, u.lastname, u.email, u.lastaccess,
                    (SELECT COUNT(*) FROM {local_parentmanager_rel} pr WHERE pr.parentid = u.id) as childcount
             FROM {user} u
-            JOIN {user_info_data} uid ON u.id = uid.userid
-            JOIN {user_info_field} uif ON uid.fieldid = uif.id
-            WHERE uif.shortname = :shortname
-            AND uid.data = :isparent
-            AND u.deleted = 0
+            JOIN {local_parentmanager_parents} p ON u.id = p.userid
+            WHERE u.deleted = 0
             ORDER BY u.lastname, u.firstname";
 
-    return $DB->get_records_sql($sql, ['shortname' => 'is_parent', 'isparent' => 'Yes']);
+    return $DB->get_records_sql($sql);
 }
 
 /**
@@ -74,14 +71,12 @@ function local_parentmanager_get_unassigned_users() {
 
     $sql = "SELECT u.id, u.firstname, u.lastname, u.email
             FROM {user} u
-            LEFT JOIN {user_info_data} uid ON u.id = uid.userid
-            LEFT JOIN {user_info_field} uif ON uid.fieldid = uif.id AND uif.shortname = :shortname
             WHERE u.deleted = 0
             AND u.id NOT IN (SELECT childid FROM {local_parentmanager_rel})
-            AND (uid.data IS NULL OR uid.data != :isparent OR uif.id IS NULL)
+            AND u.id NOT IN (SELECT userid FROM {local_parentmanager_parents})
             ORDER BY u.lastname, u.firstname";
 
-    return $DB->get_records_sql($sql, ['shortname' => 'is_parent', 'isparent' => 'Yes']);
+    return $DB->get_records_sql($sql);
 }
 
 /**
@@ -137,34 +132,33 @@ function local_parentmanager_remove_child($relationid) {
 }
 
 /**
- * Update user's is_parent profile field.
+ * Update user's parent status in the parent table.
  *
  * @param int $userid User ID
- * @param string $value New value (Yes/No)
+ * @param bool $isparent True to mark as parent, false to remove parent status
  * @return bool Success status
  */
-function local_parentmanager_update_parent_status($userid, $value) {
+function local_parentmanager_update_parent_status($userid, $isparent) {
     global $DB;
 
-    // Get the custom field ID.
-    $field = $DB->get_record('user_info_field', ['shortname' => 'is_parent']);
-    if (!$field) {
-        return false;
-    }
+    $exists = $DB->record_exists('local_parentmanager_parents', ['userid' => $userid]);
 
-    // Check if data exists.
-    $datarecord = $DB->get_record('user_info_data', ['userid' => $userid, 'fieldid' => $field->id]);
-
-    if ($datarecord) {
-        $datarecord->data = $value;
-        return $DB->update_record('user_info_data', $datarecord);
+    if ($isparent) {
+        // Add user as parent if not already exists.
+        if (!$exists) {
+            $record = new stdClass();
+            $record->userid = $userid;
+            $record->timecreated = time();
+            $record->timemodified = time();
+            return $DB->insert_record('local_parentmanager_parents', $record) ? true : false;
+        }
+        return true; // Already a parent.
     } else {
-        $datarecord = new stdClass();
-        $datarecord->userid = $userid;
-        $datarecord->fieldid = $field->id;
-        $datarecord->data = $value;
-        $datarecord->dataformat = 0;
-        return $DB->insert_record('user_info_data', $datarecord);
+        // Remove parent status.
+        if ($exists) {
+            return $DB->delete_records('local_parentmanager_parents', ['userid' => $userid]);
+        }
+        return true; // Already not a parent.
     }
 }
 
@@ -188,8 +182,8 @@ function local_parentmanager_remove_parent($parentid) {
     // Remove all relationships.
     $DB->delete_records('local_parentmanager_rel', ['parentid' => $parentid]);
 
-    // Update profile field.
-    return local_parentmanager_update_parent_status($parentid, 'No');
+    // Remove from parent table.
+    return local_parentmanager_update_parent_status($parentid, false);
 }
 
 /**
@@ -215,7 +209,7 @@ function local_parentmanager_output_fragment_assign_form($args) {
 }
 
 /**
- * Mark users as parents by updating their profile field.
+ * Mark users as parents by adding them to the parent table.
  *
  * @param array $userids Array of user IDs to mark as parents
  * @return bool Success status
@@ -223,7 +217,7 @@ function local_parentmanager_output_fragment_assign_form($args) {
 function local_parentmanager_mark_as_parents($userids) {
     $success = true;
     foreach ($userids as $userid) {
-        $result = local_parentmanager_update_parent_status($userid, 'Yes');
+        $result = local_parentmanager_update_parent_status($userid, true);
         if (!$result) {
             $success = false;
         }
@@ -304,18 +298,5 @@ function local_parentmanager_unassign_parent_role($parentid, $childid) {
 function local_parentmanager_is_parent($userid) {
     global $DB;
 
-    // Get the custom field ID.
-    $field = $DB->get_record('user_info_field', ['shortname' => 'is_parent']);
-    if (!$field) {
-        return false;
-    }
-
-    // Check if data exists.
-    $datarecord = $DB->get_record('user_info_data', ['userid' => $userid, 'fieldid' => $field->id]);
-
-    if ($datarecord && $datarecord->data === 'Yes') {
-        return true;
-    }
-
-    return false;
+    return $DB->record_exists('local_parentmanager_parents', ['userid' => $userid]);
 }

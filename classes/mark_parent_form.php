@@ -45,28 +45,18 @@ class local_parentmanager_mark_parent_form extends moodleform {
                 WHERE u.deleted = 0
                 AND u.id > 2
                 -- Exclude parent users
-                AND NOT EXISTS (
-                    SELECT 1
-                    FROM {user_info_data} uid
-                    JOIN {user_info_field} uif ON uif.id = uid.fieldid
-                    WHERE uid.userid = u.id
-                        AND uif.shortname = :shortname
-                        AND uid.data = :isparent
+                AND u.id NOT IN (
+                    SELECT userid
+                    FROM {local_parentmanager_parents}
                 )
                 -- Exclude users assigned as children
-                AND NOT EXISTS (
-                    SELECT 1
-                    FROM {local_parentmanager_rel} rel
-                    WHERE rel.childid = u.id
+                AND u.id NOT IN (
+                    SELECT childid
+                    FROM {local_parentmanager_rel}
                 )
                 ORDER BY u.lastname, u.firstname";
         
-        $params = [
-            'shortname' => 'is_parent',
-            'isparent' => 'Yes'
-        ];
-        
-        $users = $DB->get_records_sql($sql, $params);
+        $users = $DB->get_records_sql($sql);
         
         // Build options array for autocomplete.
         $options = [];

@@ -83,15 +83,12 @@ echo html_writer::empty_tag('hr');
 echo $OUTPUT->heading(get_string('parentlist', 'local_parentmanager'), 3);
 
 // Build SQL query for parents with search.
-$params = ['shortname' => 'is_parent', 'isparent' => 'Yes'];
+$params = [];
 $sql = "SELECT u.id, u.firstname, u.lastname, u.email, u.lastaccess,
                (SELECT COUNT(*) FROM {local_parentmanager_rel} pr WHERE pr.parentid = u.id) as childcount
         FROM {user} u
-        JOIN {user_info_data} uid ON u.id = uid.userid
-        JOIN {user_info_field} uif ON uid.fieldid = uif.id
-        WHERE uif.shortname = :shortname
-        AND uid.data = :isparent
-        AND u.deleted = 0";
+        JOIN {local_parentmanager_parents} p ON u.id = p.userid
+        WHERE u.deleted = 0";
 
 if (!empty($search)) {
     $sql .= " AND (" . $DB->sql_like('u.firstname', ':search1', false) . " OR " .
@@ -116,13 +113,10 @@ $parents = $DB->get_records_sql($sql, $params, $perpage * $page, $perpage);
 // Count total parents.
 $countsql = "SELECT COUNT(u.id)
              FROM {user} u
-             JOIN {user_info_data} uid ON u.id = uid.userid
-             JOIN {user_info_field} uif ON uid.fieldid = uif.id
-             WHERE uif.shortname = :shortname
-             AND uid.data = :isparent
-             AND u.deleted = 0";
+             JOIN {local_parentmanager_parents} p ON u.id = p.userid
+             WHERE u.deleted = 0";
 
-$countparams = ['shortname' => 'is_parent', 'isparent' => 'Yes'];
+$countparams = [];
 if (!empty($search)) {
     $countsql .= " AND (" . $DB->sql_like('u.firstname', ':search1', false) . " OR " .
                             $DB->sql_like('u.lastname', ':search2', false) . " OR " .

@@ -54,16 +54,12 @@ class local_parentmanager_assign_form extends moodleform {
                     SELECT childid FROM {local_parentmanager_rel}
                 )
                 AND u.id NOT IN (
-                    SELECT uid.userid
-                    FROM {user_info_data} uid
-                    JOIN {user_info_field} uif ON uid.fieldid = uif.id
-                    WHERE uif.shortname = :shortname AND uid.data = :isparent
+                    SELECT userid
+                    FROM {local_parentmanager_parents}
                 )
                 ORDER BY u.lastname, u.firstname";
         
         $params = [
-            'shortname' => 'is_parent',
-            'isparent' => 'Yes',
             'parentid' => $parentid
         ];
         
