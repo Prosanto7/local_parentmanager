@@ -293,3 +293,29 @@ function local_parentmanager_unassign_parent_role($parentid, $childid) {
         return false;
     }
 }
+
+
+/**
+ * Check if a user is marked as a parent.
+ *
+ * @param int $userid User ID
+ * @return bool True if user is a parent, false otherwise
+ */
+function local_parentmanager_is_parent($userid) {
+    global $DB;
+
+    // Get the custom field ID.
+    $field = $DB->get_record('user_info_field', ['shortname' => 'is_parent']);
+    if (!$field) {
+        return false;
+    }
+
+    // Check if data exists.
+    $datarecord = $DB->get_record('user_info_data', ['userid' => $userid, 'fieldid' => $field->id]);
+
+    if ($datarecord && $datarecord->data === 'Yes') {
+        return true;
+    }
+
+    return false;
+}
